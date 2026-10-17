@@ -224,35 +224,35 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ESP32 Real-Time Quad Relay & Telegram Control System</title>
+  <title>ESP8266 IoT Real-Time Quad Relay</title>
   <style>
     :root {
-      --bg: #131722;
-      --bg-gradient: radial-gradient(circle at 15% 15%, rgba(148, 163, 184, 0.08) 0%, transparent 45%), radial-gradient(circle at 85% 85%, rgba(71, 85, 105, 0.08) 0%, transparent 45%);
-      --card-bg: rgba(28, 35, 51, 0.90);
-      --card-inner-bg: #161c2c;
-      --card-border: rgba(255, 255, 255, 0.14);
-      --primary: #00e5ff;
-      --primary-glow: rgba(0, 229, 255, 0.45);
-      --success: #00e676;
-      --success-glow: rgba(0, 230, 118, 0.45);
-      --danger: #ff3366;
-      --danger-glow: rgba(255, 51, 102, 0.45);
-      --warning: #ffb703;
-      --tg-color: #29b6f6;
-      --tg-glow: rgba(41, 182, 246, 0.45);
+      --bg: #090d16;
+      --bg-gradient: radial-gradient(circle at 12% 12%, rgba(56, 189, 248, 0.08) 0%, transparent 45%), radial-gradient(circle at 88% 88%, rgba(16, 185, 129, 0.06) 0%, transparent 45%);
+      --card-bg: #111827;
+      --card-inner-bg: #1a2234;
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary: #38bdf8;
+      --primary-glow: rgba(56, 189, 248, 0.35);
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.35);
+      --danger: #ef4444;
+      --danger-glow: rgba(239, 68, 68, 0.35);
+      --warning: #f59e0b;
+      --tg-color: #0ea5e9;
+      --tg-glow: rgba(14, 165, 233, 0.35);
       --text: #f8fafc;
-      --text-sub: #cbd5e1;
-      --text-muted: #94a3b8;
-      --input-bg: #0f1420;
-      --card-radius: 18px;
+      --text-sub: #94a3b8;
+      --text-muted: #64748b;
+      --input-bg: #0d131f;
+      --card-radius: 14px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     body { background-color: var(--bg); background-image: var(--bg-gradient); color: var(--text); min-height: 100vh; padding: 16px 12px 30px; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
     .container { width: 100%; max-width: 680px; display: flex; flex-direction: column; gap: 14px; }
     
     /* Header */
-    header { background: var(--card-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--card-border); border-radius: var(--card-radius); padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.45); position: sticky; top: 12px; z-index: 50; }
+    header { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--card-radius); padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.35); position: sticky; top: 12px; z-index: 50; }
     .header-left { display: flex; align-items: center; gap: 12px; }
     .menu-btn { background: rgba(255,255,255,0.08); border: 1px solid var(--card-border); color: #fff; width: 40px; height: 40px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: all 0.2s; }
     .menu-btn:active { transform: scale(0.92); background: rgba(0, 229, 255, 0.2); border-color: var(--primary); }
@@ -340,8 +340,8 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
     .energy-subval { font-size: 12px; font-weight: 700; color: #fff; }
 
     /* Accordion Dynamic Relay Cards */
-    .relay-card { background: var(--card-bg); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--card-border); border-radius: var(--card-radius); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 6px 22px rgba(0,0,0,0.3); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-    .relay-card.active { border-color: rgba(0, 230, 118, 0.6); box-shadow: 0 0 24px rgba(0, 230, 118, 0.22); }
+    .relay-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--card-radius); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 18px rgba(0,0,0,0.3); transition: border-color 0.25s, box-shadow 0.25s; }
+    .relay-card.active { border-color: rgba(16, 185, 129, 0.5); box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
     
     /* Relay Card Header (Always visible) */
     .relay-head-bar { padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; background: transparent; transition: background 0.2s; }
@@ -493,8 +493,8 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
         <div class="logo-box">
           <div class="logo-icon">⚡</div>
           <div class="title-box">
-            <h1>ESP32 RTOS Quad Relay</h1>
-            <p>FreeRTOS & Telegram IoT Controller</p>
+            <h1>ESP8266 IoT Quad Relay</h1>
+            <p>Real-Time IoT & Telegram Controller</p>
           </div>
         </div>
       </div>
@@ -566,7 +566,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
           <div class="relay-info-left">
             <div class="relay-ch-badge">R1</div>
             <div class="relay-title-group">
-              <span class="relay-title" id="r1Name">Relay 1 (D5)</span>
+              <span class="relay-title" id="r1Name">Relay 1 (D1)</span>
               <span class="relay-active-pill" id="r1ActivePill">⏱️ Active</span>
             </div>
           </div>
@@ -663,11 +663,11 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
           <div class="tab-pane" id="r1TabSched">
             <div class="form-group">
               <label class="form-label">Daily Turn ON Time (HH:MM):</label>
-              <input type="time" class="input-box" id="r1SchedStart" value="08:00">
+              <input type="time" class="input-box" id="r1SchedStart" value="08:00" onchange="setSchedule(1)">
             </div>
             <div class="form-group">
               <label class="form-label">Daily Turn OFF Time (HH:MM):</label>
-              <input type="time" class="input-box" id="r1SchedEnd" value="18:00">
+              <input type="time" class="input-box" id="r1SchedEnd" value="18:00" onchange="setSchedule(1)">
             </div>
             <div class="form-group">
               <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -695,6 +695,14 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
                 <span class="slider"></span>
               </label>
             </div>
+            <div class="live-sched-box" id="r1SchedLiveBox" style="margin-top:10px; padding:8px 10px; background:rgba(0, 229, 255, 0.08); border:1px solid rgba(0, 229, 255, 0.25); border-radius:8px; font-size:11px; display:none;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:700; color:var(--primary);">📅 Active Schedule:</span>
+                <span id="r1SchedLiveText" style="color:var(--text-main); font-weight:600;">08:00 - 18:00</span>
+              </div>
+              <div id="r1SchedDaysText" style="font-size:10px; color:var(--text-sub); margin-top:2px;">Days: Every Day</div>
+            </div>
+            <button class="btn btn-primary" style="margin-top:10px;" onclick="saveSchedule(1, true)">Save & Activate Schedule</button>
           </div>
 
           <!-- Tab 4: Energy & Stats -->
@@ -719,7 +727,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
           <div class="relay-info-left">
             <div class="relay-ch-badge">R2</div>
             <div class="relay-title-group">
-              <span class="relay-title" id="r2Name">Relay 2 (D18)</span>
+              <span class="relay-title" id="r2Name">Relay 2 (D2)</span>
               <span class="relay-active-pill" id="r2ActivePill">⏱️ Active</span>
             </div>
           </div>
@@ -816,11 +824,11 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
           <div class="tab-pane" id="r2TabSched">
             <div class="form-group">
               <label class="form-label">Daily Turn ON Time (HH:MM):</label>
-              <input type="time" class="input-box" id="r2SchedStart" value="18:00">
+              <input type="time" class="input-box" id="r2SchedStart" value="18:00" onchange="setSchedule(2)">
             </div>
             <div class="form-group">
               <label class="form-label">Daily Turn OFF Time (HH:MM):</label>
-              <input type="time" class="input-box" id="r2SchedEnd" value="22:00">
+              <input type="time" class="input-box" id="r2SchedEnd" value="22:00" onchange="setSchedule(2)">
             </div>
             <div class="form-group">
               <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -848,6 +856,14 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
                 <span class="slider"></span>
               </label>
             </div>
+            <div class="live-sched-box" id="r2SchedLiveBox" style="margin-top:10px; padding:8px 10px; background:rgba(0, 229, 255, 0.08); border:1px solid rgba(0, 229, 255, 0.25); border-radius:8px; font-size:11px; display:none;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:700; color:var(--primary);">📅 Active Schedule:</span>
+                <span id="r2SchedLiveText" style="color:var(--text-main); font-weight:600;">18:00 - 22:00</span>
+              </div>
+              <div id="r2SchedDaysText" style="font-size:10px; color:var(--text-sub); margin-top:2px;">Days: Every Day</div>
+            </div>
+            <button class="btn btn-primary" style="margin-top:10px;" onclick="saveSchedule(2, true)">Save & Activate Schedule</button>
           </div>
 
           <!-- Tab 4: Energy & Stats -->
@@ -872,7 +888,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
           <div class="relay-info-left">
             <div class="relay-ch-badge">R3</div>
             <div class="relay-title-group">
-              <span class="relay-title" id="r3Name">Relay 3 (D19)</span>
+              <span class="relay-title" id="r3Name">Relay 3 (D5)</span>
               <span class="relay-active-pill" id="r3ActivePill">⏱️ Active</span>
             </div>
           </div>
@@ -969,11 +985,11 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
           <div class="tab-pane" id="r3TabSched">
             <div class="form-group">
               <label class="form-label">Daily Turn ON Time (HH:MM):</label>
-              <input type="time" class="input-box" id="r3SchedStart" value="08:00">
+              <input type="time" class="input-box" id="r3SchedStart" value="08:00" onchange="setSchedule(3)">
             </div>
             <div class="form-group">
               <label class="form-label">Daily Turn OFF Time (HH:MM):</label>
-              <input type="time" class="input-box" id="r3SchedEnd" value="18:00">
+              <input type="time" class="input-box" id="r3SchedEnd" value="18:00" onchange="setSchedule(3)">
             </div>
             <div class="form-group">
               <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -1001,6 +1017,14 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
                 <span class="slider"></span>
               </label>
             </div>
+            <div class="live-sched-box" id="r3SchedLiveBox" style="margin-top:10px; padding:8px 10px; background:rgba(0, 229, 255, 0.08); border:1px solid rgba(0, 229, 255, 0.25); border-radius:8px; font-size:11px; display:none;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:700; color:var(--primary);">📅 Active Schedule:</span>
+                <span id="r3SchedLiveText" style="color:var(--text-main); font-weight:600;">08:00 - 18:00</span>
+              </div>
+              <div id="r3SchedDaysText" style="font-size:10px; color:var(--text-sub); margin-top:2px;">Days: Every Day</div>
+            </div>
+            <button class="btn btn-primary" style="margin-top:10px;" onclick="saveSchedule(3, true)">Save & Activate Schedule</button>
           </div>
 
           <!-- Tab 4: Energy & Stats -->
@@ -1025,7 +1049,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
           <div class="relay-info-left">
             <div class="relay-ch-badge">R4</div>
             <div class="relay-title-group">
-              <span class="relay-title" id="r4Name">Relay 4 (D21)</span>
+              <span class="relay-title" id="r4Name">Relay 4 (D6)</span>
               <span class="relay-active-pill" id="r4ActivePill">⏱️ Active</span>
             </div>
           </div>
@@ -1122,11 +1146,11 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
           <div class="tab-pane" id="r4TabSched">
             <div class="form-group">
               <label class="form-label">Daily Turn ON Time (HH:MM):</label>
-              <input type="time" class="input-box" id="r4SchedStart" value="18:00">
+              <input type="time" class="input-box" id="r4SchedStart" value="18:00" onchange="setSchedule(4)">
             </div>
             <div class="form-group">
               <label class="form-label">Daily Turn OFF Time (HH:MM):</label>
-              <input type="time" class="input-box" id="r4SchedEnd" value="22:00">
+              <input type="time" class="input-box" id="r4SchedEnd" value="22:00" onchange="setSchedule(4)">
             </div>
             <div class="form-group">
               <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -1154,6 +1178,14 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
                 <span class="slider"></span>
               </label>
             </div>
+            <div class="live-sched-box" id="r4SchedLiveBox" style="margin-top:10px; padding:8px 10px; background:rgba(0, 229, 255, 0.08); border:1px solid rgba(0, 229, 255, 0.25); border-radius:8px; font-size:11px; display:none;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:700; color:var(--primary);">📅 Active Schedule:</span>
+                <span id="r4SchedLiveText" style="color:var(--text-main); font-weight:600;">18:00 - 22:00</span>
+              </div>
+              <div id="r4SchedDaysText" style="font-size:10px; color:var(--text-sub); margin-top:2px;">Days: Every Day</div>
+            </div>
+            <button class="btn btn-primary" style="margin-top:10px;" onclick="saveSchedule(4, true)">Save & Activate Schedule</button>
           </div>
 
           <!-- Tab 4: Energy & Stats -->
@@ -1268,8 +1300,8 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
     <footer class="footer-card">
       <div class="footer-top">
         <div>
-          <div style="font-weight:800; color:#fff; font-size:12px;">ESP32 RTOS 4-Channel Control System</div>
-          <div style="font-size:10px; color:var(--text-sub);">Relay 1: <b>D5</b> &bull; Relay 2: <b>D18</b> &bull; Relay 3: <b>D19</b> &bull; Relay 4: <b>D21</b></div>
+          <div style="font-weight:800; color:#fff; font-size:12px;">ESP8266 Real-Time 4-Channel Control System</div>
+          <div style="font-size:10px; color:var(--text-sub);">Relay 1: <b>D1 (5)</b> &bull; Relay 2: <b>D2 (4)</b> &bull; Relay 3: <b>D5 (14)</b> &bull; Relay 4: <b>D6 (12)</b></div>
         </div>
         <div style="display:flex; gap:6px; align-items:center;">
           <span class="version-badge" id="footerFwVer">FW: v2.0.0-OTA</span>
@@ -1404,7 +1436,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
 
       <!-- Channels Customization -->
       <div class="form-group" style="border-top:1px solid var(--card-border); padding-top:10px;">
-        <label class="form-label" style="color:#fff;">🏷️ Channel 1 Customization (D5)</label>
+        <label class="form-label" style="color:#fff;">🏷️ Channel 1 Customization (D1 / GPIO 5)</label>
         <input type="text" class="input-box" id="cfgR1Name" placeholder="Relay 1 Name" value="Relay 1">
         <div class="input-row" style="margin-top:4px;">
           <input type="number" class="input-box" id="cfgR1Watts" placeholder="Watts (e.g. 100)" value="100">
@@ -1417,7 +1449,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
       </div>
 
       <div class="form-group" style="border-top:1px solid var(--card-border); padding-top:10px;">
-        <label class="form-label" style="color:#fff;">🏷️ Channel 2 Customization (D18)</label>
+        <label class="form-label" style="color:#fff;">🏷️ Channel 2 Customization (D2 / GPIO 4)</label>
         <input type="text" class="input-box" id="cfgR2Name" placeholder="Relay 2 Name" value="Relay 2">
         <div class="input-row" style="margin-top:4px;">
           <input type="number" class="input-box" id="cfgR2Watts" placeholder="Watts (e.g. 100)" value="100">
@@ -1430,7 +1462,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
       </div>
 
       <div class="form-group" style="border-top:1px solid var(--card-border); padding-top:10px;">
-        <label class="form-label" style="color:#fff;">🏷️ Channel 3 Customization (D19)</label>
+        <label class="form-label" style="color:#fff;">🏷️ Channel 3 Customization (D5 / GPIO 14)</label>
         <input type="text" class="input-box" id="cfgR3Name" placeholder="Relay 3 Name" value="Relay 3">
         <div class="input-row" style="margin-top:4px;">
           <input type="number" class="input-box" id="cfgR3Watts" placeholder="Watts (e.g. 100)" value="100">
@@ -1443,7 +1475,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
       </div>
 
       <div class="form-group" style="border-top:1px solid var(--card-border); padding-top:10px;">
-        <label class="form-label" style="color:#fff;">🏷️ Channel 4 Customization (D21)</label>
+        <label class="form-label" style="color:#fff;">🏷️ Channel 4 Customization (D6 / GPIO 12)</label>
         <input type="text" class="input-box" id="cfgR4Name" placeholder="Relay 4 Name" value="Relay 4">
         <div class="input-row" style="margin-top:4px;">
           <input type="number" class="input-box" id="cfgR4Watts" placeholder="Watts (e.g. 100)" value="100">
@@ -1567,8 +1599,12 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
       await toggleRelay(id, newState);
     }
 
-    // Relay Manual Toggle
+    // Relay Manual Toggle with Optimistic Instant Visual Feedback
     async function toggleRelay(id, state) {
+      const prevState = relayStates[id];
+      relayStates[id] = state;
+      updateRelayVisuals(id, state); // Instant 0ms visual feedback!
+
       try {
         const res = await fetch('/api/relay', {
           method: 'POST',
@@ -1577,11 +1613,13 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
         });
         if (res.ok) {
           showToast(`Relay ${id} switched ${state ? 'ON' : 'OFF'}`);
-          relayStates[id] = state;
-          updateRelayVisuals(id, state);
-          fetchStatus();
+          setTimeout(fetchStatus, 300);
+        } else {
+          throw new Error('Server error');
         }
       } catch (err) {
+        relayStates[id] = prevState;
+        updateRelayVisuals(id, prevState);
         showToast('Error sending command');
       }
     }
@@ -1733,6 +1771,18 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
     }
 
     // Weekday Schedule Selection
+    function getDaysSummary(mask) {
+      if (mask === undefined || mask === 0x7F || mask === 0xFF) return 'Days: Every Day';
+      if (mask === 0x3E) return 'Days: Mon - Fri';
+      if (mask === 0x41) return 'Days: Sat - Sun';
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      let active = [];
+      for (let d = 0; d < 7; d++) {
+        if (mask & (1 << d)) active.push(dayNames[d]);
+      }
+      return active.length > 0 ? `Days: ${active.join(', ')}` : 'Days: None';
+    }
+
     function toggleDay(relayId, dayIdx) {
       if (rDays[relayId] === 0xFF) rDays[relayId] = 0x7F;
       rDays[relayId] ^= (1 << dayIdx);
@@ -1759,16 +1809,48 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
       });
     }
 
-    async function setSchedule(id) {
-      const isEn = document.getElementById(`r${id}SchedEn`).checked;
-      const startVal = document.getElementById(`r${id}SchedStart`).value.split(':');
-      const endVal = document.getElementById(`r${id}SchedEnd`).value.split(':');
+    async function setSchedule(id, forceEnable = false) {
+      const sEnElem = document.getElementById(`r${id}SchedEn`);
+      if (forceEnable && sEnElem) {
+        sEnElem.checked = true;
+      }
+      const isEn = sEnElem ? sEnElem.checked : false;
+      const startInp = document.getElementById(`r${id}SchedStart`);
+      const endInp = document.getElementById(`r${id}SchedEnd`);
+      const startVal = (startInp && startInp.value ? startInp.value : '08:00').split(':');
+      const endVal = (endInp && endInp.value ? endInp.value : '18:00').split(':');
 
       const startH = parseInt(startVal[0]) || 0;
       const startM = parseInt(startVal[1]) || 0;
       const endH = parseInt(endVal[0]) || 0;
       const endM = parseInt(endVal[1]) || 0;
       const mask = rDays[id] !== undefined ? rDays[id] : 0xFF;
+
+      const timeStrStart = `${String(startH).padStart(2,'0')}:${String(startM).padStart(2,'0')}`;
+      const timeStrEnd = `${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')}`;
+
+      // Instant optimistic GUI feedback (0ms latency)
+      const sBox = document.getElementById(`r${id}SchedLiveBox`);
+      const sText = document.getElementById(`r${id}SchedLiveText`);
+      const sDays = document.getElementById(`r${id}SchedDaysText`);
+      const actPill = document.getElementById(`r${id}ActivePill`);
+      if (sBox) {
+        if (isEn) {
+          sBox.style.display = 'block';
+          if (sText) sText.innerText = `ON: ${timeStrStart} ➔ OFF: ${timeStrEnd}`;
+          if (sDays) sDays.innerText = getDaysSummary(mask);
+        } else {
+          sBox.style.display = 'none';
+        }
+      }
+      if (actPill) {
+        if (isEn) {
+          actPill.style.display = 'inline-flex';
+          actPill.innerText = `📅 ${timeStrStart}-${timeStrEnd}`;
+        } else {
+          actPill.style.display = 'none';
+        }
+      }
 
       try {
         const res = await fetch('/api/schedule', {
@@ -1777,13 +1859,17 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
           body: `id=${id}&start_h=${startH}&start_m=${startM}&end_h=${endH}&end_m=${endM}&days=${mask}&enable=${isEn ? 1 : 0}`
         });
         if (res.ok) {
-          showToast(`Relay ${id} Schedule ${isEn ? 'Enabled' : 'Disabled'}`);
+          showToast(`Relay ${id} Schedule ${isEn ? 'Saved: ' + timeStrStart + ' - ' + timeStrEnd : 'Disabled'}`);
           fetchStatus();
+        } else {
+          showToast(`Error saving Relay ${id} schedule`);
         }
       } catch(err) {
         showToast('Error saving schedule');
       }
     }
+
+    const saveSchedule = setSchedule;
 
     // Phone Time Sync
     async function syncPhoneTime() {
@@ -1943,8 +2029,11 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
       return `${h}h ${m}m`;
     }
 
-    // Status Polling Loop
+    // Status Polling Loop (Throttled for ESP8266 performance)
+    let isFetchingStatus = false;
     async function fetchStatus() {
+      if (isFetchingStatus) return;
+      isFetchingStatus = true;
       try {
         const res = await fetch('/api/status');
         if (!res.ok) return;
@@ -2010,7 +2099,11 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
               actPill.innerText = `🔁 Cyc ${r.cycle.current_cycle+1}`;
             } else if (r.schedule && r.schedule.enabled) {
               actPill.style.display = 'inline-flex';
-              actPill.innerText = '📅 Sched';
+              const sH = String(r.schedule.start_h).padStart(2,'0');
+              const sM = String(r.schedule.start_m).padStart(2,'0');
+              const eH = String(r.schedule.end_h).padStart(2,'0');
+              const eM = String(r.schedule.end_m).padStart(2,'0');
+              actPill.innerText = `📅 ${sH}:${sM}-${eH}:${eM}`;
             } else {
               actPill.style.display = 'none';
             }
@@ -2052,11 +2145,35 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
             const sEn = document.getElementById(`r${i}SchedEn`);
             if (sEn && r.schedule) {
               sEn.checked = r.schedule.enabled;
-              document.getElementById(`r${i}SchedStart`).value = `${String(r.schedule.start_h).padStart(2,'0')}:${String(r.schedule.start_m).padStart(2,'0')}`;
-              document.getElementById(`r${i}SchedEnd`).value = `${String(r.schedule.end_h).padStart(2,'0')}:${String(r.schedule.end_m).padStart(2,'0')}`;
+              const startInp = document.getElementById(`r${i}SchedStart`);
+              const endInp = document.getElementById(`r${i}SchedEnd`);
+              const timeStrStart = `${String(r.schedule.start_h).padStart(2,'0')}:${String(r.schedule.start_m).padStart(2,'0')}`;
+              const timeStrEnd = `${String(r.schedule.end_h).padStart(2,'0')}:${String(r.schedule.end_m).padStart(2,'0')}`;
+
+              // CRITICAL FIX: Do NOT overwrite inputs while user is actively focused or editing them
+              if (startInp && document.activeElement !== startInp) {
+                startInp.value = timeStrStart;
+              }
+              if (endInp && document.activeElement !== endInp) {
+                endInp.value = timeStrEnd;
+              }
               if (r.schedule.days !== undefined) {
                 rDays[i] = r.schedule.days;
                 updateDayUi(i);
+              }
+
+              // Update the Live Schedule Display Box in Tab 3
+              const sBox = document.getElementById(`r${i}SchedLiveBox`);
+              const sText = document.getElementById(`r${i}SchedLiveText`);
+              const sDays = document.getElementById(`r${i}SchedDaysText`);
+              if (sBox) {
+                if (r.schedule.enabled) {
+                  sBox.style.display = 'block';
+                  if (sText) sText.innerText = `ON: ${timeStrStart} ➔ OFF: ${timeStrEnd}`;
+                  if (sDays) sDays.innerText = getDaysSummary(r.schedule.days);
+                } else {
+                  sBox.style.display = 'none';
+                }
               }
             }
           }
@@ -2147,6 +2264,8 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
         }
       } catch (err) {
         console.error('Polling error:', err);
+      } finally {
+        isFetchingStatus = false;
       }
     }
 
@@ -2218,7 +2337,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
       xhr.send(formData);
     }
 
-    setInterval(fetchStatus, 1000);
+    setInterval(fetchStatus, 2500);
     fetchStatus();
   </script>
 </body>

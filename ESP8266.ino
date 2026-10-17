@@ -91,7 +91,9 @@ void handleStatus() {
     EventLogEntry logs[MAX_EVENT_LOGS];
     int logCount = RelayManager::getInstance().getEventLogs(logs, MAX_EVENT_LOGS);
 
-    String json = "{";
+    String json;
+    json.reserve(1500);
+    json = "{";
 
     // Time object
     json += "\"time\":{";
@@ -564,9 +566,9 @@ void setupServer500() {
 }
 
 // =====================================================================
-// FREERTOS TASKS
+// FREERTOS TASKS (ESP32 Multi-Core)
 // =====================================================================
-
+#if defined(ESP32)
 // Core 1 Task: Dedicated Relay Control & Accurate Timer/Cycle/Schedule Engine
 void vRelayTask(void *pvParameters) {
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -589,6 +591,7 @@ void vPowerTask(void *pvParameters) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
     }
 }
+#endif
 
 // =====================================================================
 // SETUP & MAIN LOOP

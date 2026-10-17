@@ -423,9 +423,9 @@ void TelegramManager::processEngine() {
         }
     }
 
-    // 2. Poll for incoming Telegram bot commands every 2.5 seconds
+    // 2. Poll for incoming Telegram bot commands every 6 seconds
     if (_config.enabled && WiFi.status() == WL_CONNECTED) {
-        if (now - _lastPollTick >= 2500) {
+        if (now - _lastPollTick >= 6000) {
             _lastPollTick = now;
             checkIncomingMessages();
         }

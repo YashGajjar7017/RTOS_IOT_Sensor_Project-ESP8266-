@@ -208,7 +208,10 @@ void RelayManager::setRelayState(uint8_t channelId, bool state) {
             // If manual toggle occurred, cancel any one-shot pulse
             _pulseActive[idx] = false;
             
-            saveToPreferences();
+            if (_channels[idx].powerOnState == POWERON_RESTORE_LAST) {
+                saveToPreferences();
+            }
+            
             Serial.printf("[RelayManager] Relay %d state -> %s\n", channelId, state ? "ON" : "OFF");
         }
         xSemaphoreGive(_relayMutex);

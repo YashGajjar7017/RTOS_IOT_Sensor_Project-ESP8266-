@@ -32,6 +32,8 @@
   #define xSemaphoreTake(s, t) (pdTRUE)
   #define xSemaphoreGive(s) (pdTRUE)
   #define xTaskGetTickCount() millis()
+
+  #include "Preferences.h"
 #else
   #include <WiFi.h>
   #include <WebServer.h>
@@ -68,6 +70,9 @@
 #define RELAY_4_PIN 21  // D21 / GPIO 21
 #define STATUS_LED_PIN 2 // Onboard Blue LED
 #endif
+
+// Number of relay channels
+#define NUM_RELAY_CHANNELS 4
 
 // =====================================================================
 // DEFAULT ACCESS POINT (AP) CONFIGURATION
