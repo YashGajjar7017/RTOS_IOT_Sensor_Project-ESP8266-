@@ -1,4 +1,5 @@
 #include "PowerManager.h"
+#include "TelegramManager.h"
 #include <math.h>
 
 PowerManager::PowerManager() : 
@@ -196,7 +197,12 @@ void PowerManager::updateSleepLed() {
 
 void PowerManager::wakeUpAP() {
     Serial.println("[PowerManager] Waking up Wi-Fi AP...");
-    WiFi.mode(WIFI_AP);
+    TelegramConfig tg = TelegramManager::getInstance().getConfig();
+    if (tg.enabled && strlen(tg.staSsid) > 0) {
+        WiFi.mode(WIFI_AP_STA);
+    } else {
+        WiFi.mode(WIFI_AP);
+    }
     
     IPAddress local_IP(AP_IP_OCTET_1, AP_IP_OCTET_2, AP_IP_OCTET_3, AP_IP_OCTET_4);
     IPAddress gateway(AP_IP_OCTET_1, AP_IP_OCTET_2, AP_IP_OCTET_3, AP_IP_OCTET_4);
@@ -222,15 +228,22 @@ void PowerManager::putAPToSleep() {
     if (_config.permanentStayOn) {
         return; // Inhibit sleep if permanent stay on is active
     }
-    Serial.println("[PowerManager] Putting Wi-Fi AP to sleep (Power Saving Mode)...");
+    Serial.println("[PowerManager] Disconnecting Wi-Fi AP channel (Power Saver Mode)... Backend relay operations continue uninterrupted.");
     WiFi.softAPdisconnect(true);
-    WiFi.mode(WIFI_OFF);
+    
+    // If Telegram is configured, keep Station interface active; otherwise shut off radio
+    TelegramConfig tg = TelegramManager::getInstance().getConfig();
+    if (tg.enabled && strlen(tg.staSsid) > 0) {
+        WiFi.mode(WIFI_STA);
+    } else {
+        WiFi.mode(WIFI_OFF);
+    }
 
     _config.isApSleeping = true;
     _stateChangeTick = millis();
     _ledPhase = 0.0f;
     _ledBrightness = 0;
-    Serial.printf("[PowerManager] Wi-Fi AP sleeping. Blue LED breathing smoothly. Next wake in %u minutes.\n", _config.sleepIntervalMin);
+    Serial.printf("[PowerManager] Wi-Fi AP disconnected (Sleeping). Blue LED breathing smoothly. Next AP wake window in %u minutes.\n", _config.sleepIntervalMin);
 }
 
 void PowerManager::processEngine() {

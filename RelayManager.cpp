@@ -13,6 +13,8 @@ RelayManager::RelayManager() :
     for (int i = 0; i < NUM_RELAY_CHANNELS; i++) {
         _pulseActive[i] = false;
         _pulseEndTick[i] = 0;
+        _inScheduleWindow[i] = false;
+        _scheduleInitialized[i] = false;
     }
 
     // Default Channel 1
@@ -104,16 +106,9 @@ RelayManager& RelayManager::getInstance() {
 }
 
 void RelayManager::begin() {
-    // Configure GPIOs for all channels
-    for (int i = 0; i < NUM_RELAY_CHANNELS; i++) {
-        pinMode(_channels[i].pin, OUTPUT);
-    }
-    pinMode(STATUS_LED_PIN, OUTPUT);
-    digitalWrite(STATUS_LED_PIN, LOW);
-
     loadFromPreferences();
 
-    // Set initial physical state based on Power-On preference
+    // Set initial physical state BEFORE setting pinMode to OUTPUT to prevent active-low relay clicks on boot
     for (int i = 0; i < NUM_RELAY_CHANNELS; i++) {
         if (_channels[i].powerOnState == POWERON_ON) {
             _channels[i].state = true;
@@ -121,8 +116,14 @@ void RelayManager::begin() {
             _channels[i].state = false;
         } // if RESTORE_LAST, state was already restored in loadFromPreferences()
         
-        applyPhysicalPin(i + 1);
+        // Inactive level calculation
+        uint8_t level = _channels[i].activeLow ? (_channels[i].state ? LOW : HIGH) : (_channels[i].state ? HIGH : LOW);
+        digitalWrite(_channels[i].pin, level);
+        pinMode(_channels[i].pin, OUTPUT);
+        digitalWrite(_channels[i].pin, level);
     }
+    pinMode(STATUS_LED_PIN, OUTPUT);
+    digitalWrite(STATUS_LED_PIN, LOW);
 
     _lastProcessTick = millis();
     _lastRuntimeSaveTick = millis();
@@ -130,8 +131,13 @@ void RelayManager::begin() {
     _processTicks = 0;
 
     logEvent("System Booted & RTOS Initialized");
+#if defined(ESP8266)
+    Serial.printf("[RelayManager] Initialized with 4 channels on GPIOs: D1(%d), D2(%d), D5(%d), D6(%d)\n", 
+                  _channels[0].pin, _channels[1].pin, _channels[2].pin, _channels[3].pin);
+#else
     Serial.printf("[RelayManager] Initialized with 4 channels on GPIOs: D5(%d), D18(%d), D19(%d), D21(%d)\n", 
                   _channels[0].pin, _channels[1].pin, _channels[2].pin, _channels[3].pin);
+#endif
 }
 
 void RelayManager::logEvent(const char* msg) {
@@ -194,26 +200,29 @@ void RelayManager::setRelayState(uint8_t channelId, bool state) {
     
     if (xSemaphoreTake(_relayMutex, portMAX_DELAY) == pdTRUE) {
         uint8_t idx = channelId - 1;
-        if (_channels[idx].state != state) {
-            _channels[idx].state = state;
-            applyPhysicalPin(channelId);
-            
-            char buf[64];
-            snprintf(buf, sizeof(buf), "%s manual -> %s", _channels[idx].name, state ? "ON" : "OFF");
-            logEvent(buf);
-            
-            // Notify Telegram
-            TelegramManager::getInstance().notifyRelayStateChange(channelId, _channels[idx].name, state, "Manual Web/Shortcut");
-
-            // If manual toggle occurred, cancel any one-shot pulse
-            _pulseActive[idx] = false;
-            
-            if (_channels[idx].powerOnState == POWERON_RESTORE_LAST) {
-                saveToPreferences();
-            }
-            
-            Serial.printf("[RelayManager] Relay %d state -> %s\n", channelId, state ? "ON" : "OFF");
+        
+        // Always apply state and physical pin to guarantee physical sync
+        _channels[idx].state = state;
+        applyPhysicalPin(channelId);
+        
+        // Manual control cancels conflicting one-shot timers & cycle loops for this channel
+        _channels[idx].timer.enabled = false;
+        _channels[idx].timer.isCountingDown = false;
+        _channels[idx].cycle.enabled = false;
+        _pulseActive[idx] = false;
+        
+        char buf[64];
+        snprintf(buf, sizeof(buf), "%s manual -> %s", _channels[idx].name, state ? "ON" : "OFF");
+        logEvent(buf);
+        
+        // Notify Telegram
+        TelegramManager::getInstance().notifyRelayStateChange(channelId, _channels[idx].name, state, "Manual Web/Shortcut");
+        
+        if (_channels[idx].powerOnState == POWERON_RESTORE_LAST) {
+            saveToPreferences();
         }
+        
+        Serial.printf("[RelayManager] Relay %d state -> %s (Manual Command)\n", channelId, state ? "ON" : "OFF");
         xSemaphoreGive(_relayMutex);
     }
 }
@@ -374,6 +383,9 @@ void RelayManager::setSchedule(uint8_t channelId, uint8_t startH, uint8_t startM
         _channels[idx].schedule.endSecond = 0;
         _channels[idx].schedule.daysActive = daysActive;
 
+        // Reset initialization so the updated schedule evaluates immediately
+        _scheduleInitialized[idx] = false;
+
         char buf[64];
         snprintf(buf, sizeof(buf), "%s Schedule %s (%02d:%02d-%02d:%02d)", _channels[idx].name, enable ? "Enabled" : "Disabled", startH, startM, endH, endM);
         logEvent(buf);
@@ -387,7 +399,10 @@ void RelayManager::setSchedule(uint8_t channelId, uint8_t startH, uint8_t startM
 void RelayManager::cancelSchedule(uint8_t channelId) {
     if (channelId < 1 || channelId > NUM_RELAY_CHANNELS) return;
     if (xSemaphoreTake(_relayMutex, portMAX_DELAY) == pdTRUE) {
-        _channels[channelId - 1].schedule.enabled = false;
+        uint8_t idx = channelId - 1;
+        _channels[idx].schedule.enabled = false;
+        _scheduleInitialized[idx] = false;
+        _inScheduleWindow[idx] = false;
         saveToPreferences();
         xSemaphoreGive(_relayMutex);
     }
@@ -573,17 +588,36 @@ void RelayManager::checkSchedules() {
                 }
             }
 
-            if (_channels[i].state != shouldBeOn) {
+            // Transition-based execution:
+            // Triggers state change when entering or leaving the schedule window,
+            // or upon first sync. Does NOT fight user's manual OFF/ON during the active window!
+            if (!_scheduleInitialized[i]) {
+                _scheduleInitialized[i] = true;
+                _inScheduleWindow[i] = shouldBeOn;
+                if (_channels[i].state != shouldBeOn) {
+                    _channels[i].state = shouldBeOn;
+                    applyPhysicalPin(i + 1);
+                    char buf[64];
+                    snprintf(buf, sizeof(buf), "%s Schedule Sync -> %s", _channels[i].name, shouldBeOn ? "ON" : "OFF");
+                    logEvent(buf);
+                    TelegramManager::getInstance().notifyScheduleTriggered(i + 1, _channels[i].name, shouldBeOn);
+                }
+            } else if (_inScheduleWindow[i] != shouldBeOn) {
+                // Window transition occurred (e.g. start time arrived or end time reached)
+                _inScheduleWindow[i] = shouldBeOn;
                 _channels[i].state = shouldBeOn;
                 applyPhysicalPin(i + 1);
-                
+
                 char buf[64];
                 snprintf(buf, sizeof(buf), "%s Schedule Trigger -> %s", _channels[i].name, shouldBeOn ? "ON" : "OFF");
                 logEvent(buf);
                 TelegramManager::getInstance().notifyScheduleTriggered(i + 1, _channels[i].name, shouldBeOn);
 
-                Serial.printf("[RelayManager] Schedule triggered: Relay %d -> %s\n", i + 1, shouldBeOn ? "ON" : "OFF");
+                Serial.printf("[RelayManager] Schedule Transition: Relay %d -> %s\n", i + 1, shouldBeOn ? "ON" : "OFF");
             }
+        } else {
+            _scheduleInitialized[i] = false;
+            _inScheduleWindow[i] = false;
         }
     }
 }

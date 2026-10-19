@@ -75,6 +75,10 @@ private:
     uint32_t _pulseEndTick[NUM_RELAY_CHANNELS];
     bool _pulseActive[NUM_RELAY_CHANNELS];
 
+    // Transition tracking for Daily Schedules (prevents manual override fights)
+    bool _inScheduleWindow[NUM_RELAY_CHANNELS];
+    bool _scheduleInitialized[NUM_RELAY_CHANNELS];
+
     // Event Log Ring Buffer
     EventLogEntry _logs[MAX_EVENT_LOGS];
     uint8_t _logHead;

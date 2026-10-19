@@ -247,12 +247,12 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
       --input-bg: #0d131f;
       --card-radius: 14px;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { background-color: var(--bg); background-image: var(--bg-gradient); color: var(--text); min-height: 100vh; padding: 16px 12px 30px; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
-    .container { width: 100%; max-width: 680px; display: flex; flex-direction: column; gap: 14px; }
+    body { background-color: var(--bg); background-image: var(--bg-gradient); color: var(--text); min-height: 100vh; padding: 0 0 35px 0; margin: 0; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
+    .container { width: 100%; max-width: 680px; padding: 14px 12px; display: flex; flex-direction: column; gap: 14px; }
     
-    /* Header */
-    header { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--card-radius); padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.35); position: sticky; top: 12px; z-index: 50; }
+    /* Sticky Top Navigation Bar (Fixed flush at top:0 with smooth blur - zero scroll jitter) */
+    .sticky-nav-bar { width: 100%; position: sticky; top: 0; z-index: 100; background: rgba(13, 18, 30, 0.94); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--card-border); box-shadow: 0 4px 20px rgba(0,0,0,0.5); padding: 10px 16px; display: flex; justify-content: center; }
+    .nav-content { width: 100%; max-width: 680px; display: flex; justify-content: space-between; align-items: center; }
     .header-left { display: flex; align-items: center; gap: 12px; }
     .menu-btn { background: rgba(255,255,255,0.08); border: 1px solid var(--card-border); color: #fff; width: 40px; height: 40px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: all 0.2s; }
     .menu-btn:active { transform: scale(0.92); background: rgba(0, 229, 255, 0.2); border-color: var(--primary); }
@@ -267,6 +267,15 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
     .tg-dot.online { background: var(--success); box-shadow: 0 0 8px var(--success-glow); }
     .btn-icon { background: rgba(255,255,255,0.08); border: 1px solid var(--card-border); color: #fff; width: 40px; height: 40px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all 0.2s; }
     .btn-icon:active { transform: scale(0.92); }
+
+    /* Relay Live State Badges & Schedule Clock Box */
+    .relay-state-badge { font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 4px; font-family: monospace; letter-spacing: 0.5px; }
+    .relay-state-badge.off { background: rgba(255,255,255,0.08); color: var(--text-muted); }
+    .relay-state-badge.on { background: rgba(16, 185, 129, 0.2); border: 1px solid var(--success); color: var(--success); box-shadow: 0 0 8px var(--success-glow); }
+    
+    .sched-clock-box { background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 8px 10px; font-size: 11px; display: flex; justify-content: space-between; align-items: center; }
+    .sched-clock-box b { color: var(--primary); font-family: monospace; font-size: 12px; }
+    .sched-tz-badge { font-size: 10px; font-weight: 800; background: rgba(56, 189, 248, 0.18); border: 1px solid var(--primary); color: var(--primary); padding: 2px 6px; border-radius: 4px; }
 
     /* Section Divider Banners (Distinguish Frontend vs Backend) */
     .section-banner { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-radius: 12px; margin-top: 4px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); }
@@ -455,8 +464,8 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
         <div class="sidenav-brand">
           <div class="logo-icon">⚡</div>
           <div>
-            <div style="font-weight:800; color:#fff; font-size:14px;">ESP32 RTOS</div>
-            <div style="font-size:11px; color:var(--text-sub);">Quad Relay & Telegram</div>
+            <div style="font-weight:800; color:#fff; font-size:14px;">ESP8266 IoT RTOS</div>
+            <div style="font-size:11px; color:var(--text-sub);">Quad Relay & Telegram Controller</div>
           </div>
         </div>
         <button class="close-btn" onclick="toggleSidenav(false)">&times;</button>
@@ -470,7 +479,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
 
         <div class="nav-section-title">⚙️ BACKEND & SERVICES</div>
         <a href="#powerSection" class="nav-link" onclick="toggleSidenav(false)">🔋 Power & Auto-Sleep Manager</a>
-        <a href="#telemetrySection" class="nav-link" onclick="toggleSidenav(false)">📊 FreeRTOS System Telemetry</a>
+        <a href="#telemetrySection" class="nav-link" onclick="toggleSidenav(false)">📊 Real-Time System Telemetry</a>
         <a href="javascript:void(0)" class="nav-link" onclick="openTelegramModal(); toggleSidenav(false);">✈️ Telegram Bot Hub</a>
         <a href="javascript:void(0)" class="nav-link" onclick="openSettingsModal(); toggleSidenav(false);">⚙️ System Settings & OTA</a>
         <a href="http://192.168.4.1:500" target="_blank" class="nav-link">🚀 Port 500 Dedicated Flasher</a>
@@ -481,13 +490,13 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
       <div>🌡️ Chip Temp: <b id="sideTemp" style="color:var(--primary);">-- °C</b></div>
       <div>💾 Free RAM: <b id="sideHeap" style="color:#fff;">-- KB</b></div>
       <div>⏱️ Uptime: <b id="sideUptime" style="color:var(--text-sub);">--</b></div>
-      <div style="margin-top:4px; font-size:10px; color:var(--text-muted);">FW: v2.0.0-OTA &bull; Dual-Core RTOS</div>
+      <div style="margin-top:4px; font-size:10px; color:var(--text-muted);">FW: v2.0.0-OTA &bull; ESP8266 Real-Time Engine</div>
     </div>
   </aside>
 
-  <div class="container">
-    <!-- Header -->
-    <header>
+  <!-- Sticky Top Navigation Bar (Fixed at top: 0 with Glassmorphism blur) -->
+  <nav class="sticky-nav-bar">
+    <div class="nav-content">
       <div class="header-left">
         <button class="menu-btn" onclick="toggleSidenav(true)" title="Navigation Menu">☰</button>
         <div class="logo-box">
@@ -505,16 +514,18 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
         </div>
         <button class="btn-icon" onclick="openSettingsModal()" title="System Settings">⚙️</button>
       </div>
-    </header>
+    </div>
+  </nav>
 
-    <!-- Time & Status Bar -->
+  <div class="container">
+    <!-- Time & Status Bar (Indian Standard Time IST Display) -->
     <div class="status-bar">
       <div class="time-display">
-        <span>🕒</span>
+        <span>🕒 IST Time:</span>
         <span id="liveClock">--:--:-- --</span>
         <span id="liveDate" style="color:var(--text-sub); font-size:11px; font-weight:normal;">(Not Synced)</span>
       </div>
-      <button class="sync-btn" onclick="syncPhoneTime()">📱 Sync Time</button>
+      <button class="sync-btn" onclick="syncPhoneTime()">📱 Sync Time (IST)</button>
     </div>
 
     <!-- FRONTEND CONTROLS & DASHBOARD BANNER -->
@@ -566,7 +577,10 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
           <div class="relay-info-left">
             <div class="relay-ch-badge">R1</div>
             <div class="relay-title-group">
-              <span class="relay-title" id="r1Name">Relay 1 (D1)</span>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="relay-title" id="r1Name">Relay 1 (D1)</span>
+                <span class="relay-state-badge off" id="r1StateBadge">OFF</span>
+              </div>
               <span class="relay-active-pill" id="r1ActivePill">⏱️ Active</span>
             </div>
           </div>
@@ -661,12 +675,16 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
 
           <!-- Tab 3: Daily Schedule -->
           <div class="tab-pane" id="r1TabSched">
+            <div class="sched-clock-box">
+              <span>🕒 Device Clock: <b class="schedClockDisp">--:--:-- --</b></span>
+              <span class="sched-tz-badge">IST (UTC+5:30)</span>
+            </div>
             <div class="form-group">
-              <label class="form-label">Daily Turn ON Time (HH:MM):</label>
+              <label class="form-label">Daily Turn ON Time (IST / AM-PM):</label>
               <input type="time" class="input-box" id="r1SchedStart" value="08:00" onchange="setSchedule(1)">
             </div>
             <div class="form-group">
-              <label class="form-label">Daily Turn OFF Time (HH:MM):</label>
+              <label class="form-label">Daily Turn OFF Time (IST / AM-PM):</label>
               <input type="time" class="input-box" id="r1SchedEnd" value="18:00" onchange="setSchedule(1)">
             </div>
             <div class="form-group">
@@ -697,8 +715,8 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
             </div>
             <div class="live-sched-box" id="r1SchedLiveBox" style="margin-top:10px; padding:8px 10px; background:rgba(0, 229, 255, 0.08); border:1px solid rgba(0, 229, 255, 0.25); border-radius:8px; font-size:11px; display:none;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-weight:700; color:var(--primary);">📅 Active Schedule:</span>
-                <span id="r1SchedLiveText" style="color:var(--text-main); font-weight:600;">08:00 - 18:00</span>
+                <span style="font-weight:700; color:var(--primary);">📅 Active Daily Schedule (IST):</span>
+                <span id="r1SchedLiveText" style="color:var(--text-main); font-weight:700;">--:--</span>
               </div>
               <div id="r1SchedDaysText" style="font-size:10px; color:var(--text-sub); margin-top:2px;">Days: Every Day</div>
             </div>
@@ -727,7 +745,10 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
           <div class="relay-info-left">
             <div class="relay-ch-badge">R2</div>
             <div class="relay-title-group">
-              <span class="relay-title" id="r2Name">Relay 2 (D2)</span>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="relay-title" id="r2Name">Relay 2 (D2)</span>
+                <span class="relay-state-badge off" id="r2StateBadge">OFF</span>
+              </div>
               <span class="relay-active-pill" id="r2ActivePill">⏱️ Active</span>
             </div>
           </div>
@@ -822,12 +843,16 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
 
           <!-- Tab 3: Daily Schedule -->
           <div class="tab-pane" id="r2TabSched">
+            <div class="sched-clock-box">
+              <span>🕒 Device Clock: <b class="schedClockDisp">--:--:-- --</b></span>
+              <span class="sched-tz-badge">IST (UTC+5:30)</span>
+            </div>
             <div class="form-group">
-              <label class="form-label">Daily Turn ON Time (HH:MM):</label>
+              <label class="form-label">Daily Turn ON Time (IST / AM-PM):</label>
               <input type="time" class="input-box" id="r2SchedStart" value="18:00" onchange="setSchedule(2)">
             </div>
             <div class="form-group">
-              <label class="form-label">Daily Turn OFF Time (HH:MM):</label>
+              <label class="form-label">Daily Turn OFF Time (IST / AM-PM):</label>
               <input type="time" class="input-box" id="r2SchedEnd" value="22:00" onchange="setSchedule(2)">
             </div>
             <div class="form-group">
@@ -858,8 +883,8 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
             </div>
             <div class="live-sched-box" id="r2SchedLiveBox" style="margin-top:10px; padding:8px 10px; background:rgba(0, 229, 255, 0.08); border:1px solid rgba(0, 229, 255, 0.25); border-radius:8px; font-size:11px; display:none;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-weight:700; color:var(--primary);">📅 Active Schedule:</span>
-                <span id="r2SchedLiveText" style="color:var(--text-main); font-weight:600;">18:00 - 22:00</span>
+                <span style="font-weight:700; color:var(--primary);">📅 Active Daily Schedule (IST):</span>
+                <span id="r2SchedLiveText" style="color:var(--text-main); font-weight:700;">--:--</span>
               </div>
               <div id="r2SchedDaysText" style="font-size:10px; color:var(--text-sub); margin-top:2px;">Days: Every Day</div>
             </div>
@@ -888,7 +913,10 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
           <div class="relay-info-left">
             <div class="relay-ch-badge">R3</div>
             <div class="relay-title-group">
-              <span class="relay-title" id="r3Name">Relay 3 (D5)</span>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="relay-title" id="r3Name">Relay 3 (D5)</span>
+                <span class="relay-state-badge off" id="r3StateBadge">OFF</span>
+              </div>
               <span class="relay-active-pill" id="r3ActivePill">⏱️ Active</span>
             </div>
           </div>
@@ -983,12 +1011,16 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
 
           <!-- Tab 3: Daily Schedule -->
           <div class="tab-pane" id="r3TabSched">
+            <div class="sched-clock-box">
+              <span>🕒 Device Clock: <b class="schedClockDisp">--:--:-- --</b></span>
+              <span class="sched-tz-badge">IST (UTC+5:30)</span>
+            </div>
             <div class="form-group">
-              <label class="form-label">Daily Turn ON Time (HH:MM):</label>
+              <label class="form-label">Daily Turn ON Time (IST / AM-PM):</label>
               <input type="time" class="input-box" id="r3SchedStart" value="08:00" onchange="setSchedule(3)">
             </div>
             <div class="form-group">
-              <label class="form-label">Daily Turn OFF Time (HH:MM):</label>
+              <label class="form-label">Daily Turn OFF Time (IST / AM-PM):</label>
               <input type="time" class="input-box" id="r3SchedEnd" value="18:00" onchange="setSchedule(3)">
             </div>
             <div class="form-group">
@@ -1019,8 +1051,8 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
             </div>
             <div class="live-sched-box" id="r3SchedLiveBox" style="margin-top:10px; padding:8px 10px; background:rgba(0, 229, 255, 0.08); border:1px solid rgba(0, 229, 255, 0.25); border-radius:8px; font-size:11px; display:none;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-weight:700; color:var(--primary);">📅 Active Schedule:</span>
-                <span id="r3SchedLiveText" style="color:var(--text-main); font-weight:600;">08:00 - 18:00</span>
+                <span style="font-weight:700; color:var(--primary);">📅 Active Daily Schedule (IST):</span>
+                <span id="r3SchedLiveText" style="color:var(--text-main); font-weight:700;">--:--</span>
               </div>
               <div id="r3SchedDaysText" style="font-size:10px; color:var(--text-sub); margin-top:2px;">Days: Every Day</div>
             </div>
@@ -1049,7 +1081,10 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
           <div class="relay-info-left">
             <div class="relay-ch-badge">R4</div>
             <div class="relay-title-group">
-              <span class="relay-title" id="r4Name">Relay 4 (D6)</span>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="relay-title" id="r4Name">Relay 4 (D6)</span>
+                <span class="relay-state-badge off" id="r4StateBadge">OFF</span>
+              </div>
               <span class="relay-active-pill" id="r4ActivePill">⏱️ Active</span>
             </div>
           </div>
@@ -1144,12 +1179,16 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
 
           <!-- Tab 3: Daily Schedule -->
           <div class="tab-pane" id="r4TabSched">
+            <div class="sched-clock-box">
+              <span>🕒 Device Clock: <b class="schedClockDisp">--:--:-- --</b></span>
+              <span class="sched-tz-badge">IST (UTC+5:30)</span>
+            </div>
             <div class="form-group">
-              <label class="form-label">Daily Turn ON Time (HH:MM):</label>
+              <label class="form-label">Daily Turn ON Time (IST / AM-PM):</label>
               <input type="time" class="input-box" id="r4SchedStart" value="18:00" onchange="setSchedule(4)">
             </div>
             <div class="form-group">
-              <label class="form-label">Daily Turn OFF Time (HH:MM):</label>
+              <label class="form-label">Daily Turn OFF Time (IST / AM-PM):</label>
               <input type="time" class="input-box" id="r4SchedEnd" value="22:00" onchange="setSchedule(4)">
             </div>
             <div class="form-group">
@@ -1180,8 +1219,8 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
             </div>
             <div class="live-sched-box" id="r4SchedLiveBox" style="margin-top:10px; padding:8px 10px; background:rgba(0, 229, 255, 0.08); border:1px solid rgba(0, 229, 255, 0.25); border-radius:8px; font-size:11px; display:none;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-weight:700; color:var(--primary);">📅 Active Schedule:</span>
-                <span id="r4SchedLiveText" style="color:var(--text-main); font-weight:600;">18:00 - 22:00</span>
+                <span style="font-weight:700; color:var(--primary);">📅 Active Daily Schedule (IST):</span>
+                <span id="r4SchedLiveText" style="color:var(--text-main); font-weight:700;">--:--</span>
               </div>
               <div id="r4SchedDaysText" style="font-size:10px; color:var(--text-sub); margin-top:2px;">Days: Every Day</div>
             </div>
@@ -1629,11 +1668,16 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
       const sw = document.getElementById(`r${id}Switch`);
       const scBtn = document.getElementById(`scR${id}`);
       const scBadge = document.getElementById(`scR${id}Badge`);
+      const stateBadge = document.getElementById(`r${id}StateBadge`);
 
       if (sw) sw.checked = state;
       if (card) {
         if (state) card.classList.add('active');
         else card.classList.remove('active');
+      }
+      if (stateBadge) {
+        stateBadge.className = `relay-state-badge ${state ? 'on' : 'off'}`;
+        stateBadge.innerText = state ? 'ON' : 'OFF';
       }
       if (scBtn && scBadge) {
         if (state) {
@@ -1646,6 +1690,18 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
           scBadge.innerText = 'OFF';
         }
       }
+    }
+
+    // Helper: Format 24h "HH:MM" into 12-hour AM/PM Indian Standard Time (IST)
+    function formatTime12h(timeStr) {
+      if (!timeStr) return '--:--';
+      const parts = timeStr.split(':');
+      let h = parseInt(parts[0]) || 0;
+      const m = String(parseInt(parts[1]) || 0).padStart(2, '0');
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12;
+      if (h === 0) h = 12;
+      return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
     }
 
     // Master All ON / All OFF
@@ -1829,15 +1885,18 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
       const timeStrStart = `${String(startH).padStart(2,'0')}:${String(startM).padStart(2,'0')}`;
       const timeStrEnd = `${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')}`;
 
-      // Instant optimistic GUI feedback (0ms latency)
+      // Instant optimistic GUI feedback (0ms latency with 12-Hour IST format)
       const sBox = document.getElementById(`r${id}SchedLiveBox`);
       const sText = document.getElementById(`r${id}SchedLiveText`);
       const sDays = document.getElementById(`r${id}SchedDaysText`);
       const actPill = document.getElementById(`r${id}ActivePill`);
+      const istStart = formatTime12h(timeStrStart);
+      const istEnd = formatTime12h(timeStrEnd);
+
       if (sBox) {
         if (isEn) {
           sBox.style.display = 'block';
-          if (sText) sText.innerText = `ON: ${timeStrStart} ➔ OFF: ${timeStrEnd}`;
+          if (sText) sText.innerText = `ON: ${istStart} ➔ OFF: ${istEnd} (IST)`;
           if (sDays) sDays.innerText = getDaysSummary(mask);
         } else {
           sBox.style.display = 'none';
@@ -1846,7 +1905,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
       if (actPill) {
         if (isEn) {
           actPill.style.display = 'inline-flex';
-          actPill.innerText = `📅 ${timeStrStart}-${timeStrEnd}`;
+          actPill.innerText = `📅 ${istStart} - ${istEnd}`;
         } else {
           actPill.style.display = 'none';
         }
@@ -1859,7 +1918,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
           body: `id=${id}&start_h=${startH}&start_m=${startM}&end_h=${endH}&end_m=${endM}&days=${mask}&enable=${isEn ? 1 : 0}`
         });
         if (res.ok) {
-          showToast(`Relay ${id} Schedule ${isEn ? 'Saved: ' + timeStrStart + ' - ' + timeStrEnd : 'Disabled'}`);
+          showToast(`Relay ${id} Schedule ${isEn ? 'Saved: ' + istStart + ' - ' + istEnd + ' (IST)' : 'Disabled'}`);
           fetchStatus();
         } else {
           showToast(`Error saving Relay ${id} schedule`);
@@ -2039,9 +2098,12 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
         if (!res.ok) return;
         const data = await res.json();
 
-        // Clock & Date
+        // Clock & Date (IST Indian Standard Time)
         document.getElementById('liveClock').innerText = data.time.clock;
-        document.getElementById('liveDate').innerText = data.time.date + (data.time.synced ? ' (Synced)' : ' (Not Synced)');
+        const navClk = document.getElementById('liveClockNav');
+        if (navClk) navClk.innerText = data.time.clock;
+        document.querySelectorAll('.schedClockDisp').forEach(el => { el.innerText = data.time.clock; });
+        document.getElementById('liveDate').innerText = data.time.date + (data.time.synced ? ' (IST Synced)' : ' (Not Synced)');
 
         // Power Saver & Sleep Countdown Display
         const psSwitch = document.getElementById('powerSaverSwitch');
@@ -2103,7 +2165,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
               const sM = String(r.schedule.start_m).padStart(2,'0');
               const eH = String(r.schedule.end_h).padStart(2,'0');
               const eM = String(r.schedule.end_m).padStart(2,'0');
-              actPill.innerText = `📅 ${sH}:${sM}-${eH}:${eM}`;
+              actPill.innerText = `📅 ${formatTime12h(sH + ':' + sM)} - ${formatTime12h(eH + ':' + eM)}`;
             } else {
               actPill.style.display = 'none';
             }
@@ -2162,14 +2224,14 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
                 updateDayUi(i);
               }
 
-              // Update the Live Schedule Display Box in Tab 3
+              // Update the Live Schedule Display Box in Tab 3 (Consistent 12-Hour IST format)
               const sBox = document.getElementById(`r${i}SchedLiveBox`);
               const sText = document.getElementById(`r${i}SchedLiveText`);
               const sDays = document.getElementById(`r${i}SchedDaysText`);
               if (sBox) {
                 if (r.schedule.enabled) {
                   sBox.style.display = 'block';
-                  if (sText) sText.innerText = `ON: ${timeStrStart} ➔ OFF: ${timeStrEnd}`;
+                  if (sText) sText.innerText = `ON: ${formatTime12h(timeStrStart)} ➔ OFF: ${formatTime12h(timeStrEnd)} (IST)`;
                   if (sDays) sDays.innerText = getDaysSummary(r.schedule.days);
                 } else {
                   sBox.style.display = 'none';
