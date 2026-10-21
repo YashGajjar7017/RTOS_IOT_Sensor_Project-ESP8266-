@@ -15,6 +15,7 @@ public:
     void setLowPowerMode(bool enable, uint32_t sleepMin = 5, uint32_t wakeMin = 2);
     void setPermanentStayOn(bool permanentStayOn);
     void registerUserActivity();
+    void wakeUpImmediately(); // Raise / Wake up ESP immediately (stops sleep, turns on AP)
     
     // Getters
     bool isLowPowerEnabled();

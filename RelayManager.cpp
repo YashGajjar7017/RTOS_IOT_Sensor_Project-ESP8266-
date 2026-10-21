@@ -1,4 +1,5 @@
 #include "RelayManager.h"
+#include "PowerManager.h"
 #include "TelegramManager.h"
 
 RelayManager::RelayManager() : 
@@ -122,8 +123,19 @@ void RelayManager::begin() {
         pinMode(_channels[i].pin, OUTPUT);
         digitalWrite(_channels[i].pin, level);
     }
-    pinMode(STATUS_LED_PIN, OUTPUT);
-    digitalWrite(STATUS_LED_PIN, LOW);
+    
+    // Only configure STATUS_LED_PIN if it is not used as a relay pin
+    bool statusPinConflictsWithRelay = false;
+    for (int i = 0; i < NUM_RELAY_CHANNELS; i++) {
+        if (_channels[i].pin == STATUS_LED_PIN) {
+            statusPinConflictsWithRelay = true;
+            break;
+        }
+    }
+    if (!statusPinConflictsWithRelay) {
+        pinMode(STATUS_LED_PIN, OUTPUT);
+        digitalWrite(STATUS_LED_PIN, LOW);
+    }
 
     _lastProcessTick = millis();
     _lastRuntimeSaveTick = millis();
@@ -203,6 +215,10 @@ void RelayManager::setRelayState(uint8_t channelId, bool state) {
         
         // Always apply state and physical pin to guarantee physical sync
         _channels[idx].state = state;
+        if (state) {
+            // If turning ON, raise expectation to the on the ESP immediately
+            PowerManager::getInstance().wakeUpImmediately();
+        }
         applyPhysicalPin(channelId);
         
         // Manual control cancels conflicting one-shot timers & cycle loops for this channel
@@ -234,6 +250,7 @@ void RelayManager::toggleRelay(uint8_t channelId) {
 
 void RelayManager::setAllOn() {
     if (xSemaphoreTake(_relayMutex, portMAX_DELAY) == pdTRUE) {
+        PowerManager::getInstance().wakeUpImmediately();
         for (int i = 0; i < NUM_RELAY_CHANNELS; i++) {
             _channels[i].state = true;
             applyPhysicalPin(i + 1);
@@ -285,6 +302,48 @@ bool RelayManager::getRelayState(uint8_t channelId) {
     return state;
 }
 
+bool RelayManager::isAnyRelayOn() {
+    bool on = false;
+    if (xSemaphoreTake(_relayMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+        for (int i = 0; i < NUM_RELAY_CHANNELS; i++) {
+            if (_channels[i].state) {
+                on = true;
+                break;
+            }
+        }
+        xSemaphoreGive(_relayMutex);
+    }
+    return on;
+}
+
+bool RelayManager::isAnyTimerActive() {
+    bool active = false;
+    if (xSemaphoreTake(_relayMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+        for (int i = 0; i < NUM_RELAY_CHANNELS; i++) {
+            if (_channels[i].timer.enabled && _channels[i].timer.isCountingDown) {
+                active = true;
+                break;
+            }
+        }
+        xSemaphoreGive(_relayMutex);
+    }
+    return active;
+}
+
+bool RelayManager::isAnyCycleActive() {
+    bool active = false;
+    if (xSemaphoreTake(_relayMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+        for (int i = 0; i < NUM_RELAY_CHANNELS; i++) {
+            if (_channels[i].cycle.enabled) {
+                active = true;
+                break;
+            }
+        }
+        xSemaphoreGive(_relayMutex);
+    }
+    return active;
+}
+
 void RelayManager::setCountdownTimer(uint8_t channelId, uint32_t startDelaySec, uint32_t durationSec, bool enable) {
     if (channelId < 1 || channelId > NUM_RELAY_CHANNELS) return;
     
@@ -297,6 +356,9 @@ void RelayManager::setCountdownTimer(uint8_t channelId, uint32_t startDelaySec, 
         
         // Stop cycle mode if countdown timer starts
         if (enable) {
+            // Raise expectation: Wake up ESP immediately!
+            PowerManager::getInstance().wakeUpImmediately();
+
             _channels[idx].cycle.enabled = false;
             _channels[idx].timer.isCountingDown = true;
             if (startDelaySec > 0) {
@@ -343,6 +405,9 @@ void RelayManager::setCycleAutomation(uint8_t channelId, uint32_t onSec, uint32_
         _channels[idx].cycle.currentCycle = 0;
 
         if (enable) {
+            // Raise expectation: Wake up ESP immediately!
+            PowerManager::getInstance().wakeUpImmediately();
+
             // Cancel any one-shot timer
             _channels[idx].timer.enabled = false;
             _channels[idx].timer.isCountingDown = false;
@@ -472,6 +537,8 @@ void RelayManager::checkTimers() {
                     _channels[i].timer.inDelayPhase = false;
                     _channels[i].timer.remainingSec = _channels[i].timer.durationSec;
                     _channels[i].state = true;
+                    // Raise expectation: Wake up ESP immediately!
+                    PowerManager::getInstance().wakeUpImmediately();
                     applyPhysicalPin(i + 1);
                     
                     char buf[64];
@@ -596,6 +663,9 @@ void RelayManager::checkSchedules() {
                 _inScheduleWindow[i] = shouldBeOn;
                 if (_channels[i].state != shouldBeOn) {
                     _channels[i].state = shouldBeOn;
+                    if (shouldBeOn) {
+                        PowerManager::getInstance().wakeUpImmediately();
+                    }
                     applyPhysicalPin(i + 1);
                     char buf[64];
                     snprintf(buf, sizeof(buf), "%s Schedule Sync -> %s", _channels[i].name, shouldBeOn ? "ON" : "OFF");
@@ -606,6 +676,9 @@ void RelayManager::checkSchedules() {
                 // Window transition occurred (e.g. start time arrived or end time reached)
                 _inScheduleWindow[i] = shouldBeOn;
                 _channels[i].state = shouldBeOn;
+                if (shouldBeOn) {
+                    PowerManager::getInstance().wakeUpImmediately();
+                }
                 applyPhysicalPin(i + 1);
 
                 char buf[64];

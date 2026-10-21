@@ -1,4 +1,5 @@
 #include "PowerManager.h"
+#include "RelayManager.h"
 #include "TelegramManager.h"
 #include <math.h>
 
@@ -167,32 +168,22 @@ uint32_t PowerManager::getTickCount() {
     return _processTicks;
 }
 
-void PowerManager::updateSleepLed() {
-    if (_config.isApSleeping) {
-        // Silky smooth sinusoidal breathing / fading blue light effect in sleep mode (smooth high to low to high)
-        _ledPhase += 0.052f; // ~120 steps across 25ms ticks -> ~3.0s smooth breathing cycle
-        if (_ledPhase >= 2.0f * (float)PI) {
-            _ledPhase -= 2.0f * (float)PI;
+void PowerManager::wakeUpImmediately() {
+    if (xSemaphoreTake(_powerMutex, portMAX_DELAY) == pdTRUE) {
+        _lastActivityTick = millis();
+        _stateChangeTick = millis();
+        if (_config.isApSleeping) {
+            wakeUpAP();
         }
-
-        // Sine wave mapped 0.0 to 1.0
-        float sineVal = (sinf(_ledPhase) + 1.0f) * 0.5f;
-
-        // Quadratic gamma perception curve (smooth gradual transition near dark and bright)
-        float gammaVal = sineVal * sineVal;
-
-        // Brightness smoothly transitions between gentle low (2) and bright high (255)
-        _ledBrightness = (int16_t)(gammaVal * 253.0f + 2.0f);
-        if (_ledBrightness > 255) _ledBrightness = 255;
-        if (_ledBrightness < 0) _ledBrightness = 0;
-
-        analogWrite(STATUS_LED_PIN, (uint8_t)_ledBrightness);
-    } else {
-        _ledPhase = 0.0f;
-        _ledBrightness = 0;
-        analogWrite(STATUS_LED_PIN, 0);
-        digitalWrite(STATUS_LED_PIN, LOW);
+        xSemaphoreGive(_powerMutex);
     }
+}
+
+void PowerManager::updateSleepLed() {
+    // CRITICAL FIX: Do NOT use analogWrite/PWM on ESP8266 in sleep mode!
+    // Rapid PWM modulation on STATUS_LED_PIN (GPIO 2 / D4) induces switching and clicks on relays
+    // attached to or adjacent to GPIO 2 on 4-channel relay shields.
+    // Keep STATUS_LED_PIN safely non-pulsing.
 }
 
 void PowerManager::wakeUpAP() {
@@ -215,12 +206,6 @@ void PowerManager::wakeUpAP() {
     _lastActivityTick = millis();
     _stateChangeTick = millis();
     
-    // Turn OFF sleep breathing LED when awake
-    _ledPhase = 0.0f;
-    _ledBrightness = 0;
-    analogWrite(STATUS_LED_PIN, 0);
-    digitalWrite(STATUS_LED_PIN, LOW);
-    
     Serial.printf("[PowerManager] AP Awake: %s (IP: 192.168.4.1)\n", _apSsid);
 }
 
@@ -228,6 +213,16 @@ void PowerManager::putAPToSleep() {
     if (_config.permanentStayOn) {
         return; // Inhibit sleep if permanent stay on is active
     }
+
+    // CRITICAL: Never enter sleep mode while any relay is ON, or countdown timer is counting down, or cycle is running!
+    if (RelayManager::getInstance().isAnyRelayOn() || 
+        RelayManager::getInstance().isAnyTimerActive() || 
+        RelayManager::getInstance().isAnyCycleActive()) {
+        _lastActivityTick = millis();
+        Serial.println("[PowerManager] Inhibit sleep: Relay or automation is currently active.");
+        return;
+    }
+
     Serial.println("[PowerManager] Disconnecting Wi-Fi AP channel (Power Saver Mode)... Backend relay operations continue uninterrupted.");
     WiFi.softAPdisconnect(true);
     
@@ -241,9 +236,7 @@ void PowerManager::putAPToSleep() {
 
     _config.isApSleeping = true;
     _stateChangeTick = millis();
-    _ledPhase = 0.0f;
-    _ledBrightness = 0;
-    Serial.printf("[PowerManager] Wi-Fi AP disconnected (Sleeping). Blue LED breathing smoothly. Next AP wake window in %u minutes.\n", _config.sleepIntervalMin);
+    Serial.printf("[PowerManager] Wi-Fi AP disconnected (Sleeping). Next AP wake window in %u minutes.\n", _config.sleepIntervalMin);
 }
 
 void PowerManager::processEngine() {
@@ -259,19 +252,31 @@ void PowerManager::processEngine() {
         } else if (_config.enabled) {
             uint32_t now = millis();
 
-            if (!_config.isApSleeping) {
-                // Check inactivity timeout
-                uint32_t activeTimeoutMs = _config.wakeWindowMin * 60 * 1000;
-                if (now - _lastActivityTick >= activeTimeoutMs) {
-                    // Inactivity timeout expired -> Enter sleep mode with smooth breathing LED
-                    putAPToSleep();
+            if (_config.isApSleeping) {
+                // If any relay is ON or countdown timer/cycle is active, immediately wake up ESP!
+                if (RelayManager::getInstance().isAnyRelayOn() || 
+                    RelayManager::getInstance().isAnyTimerActive() || 
+                    RelayManager::getInstance().isAnyCycleActive()) {
+                    Serial.println("[PowerManager] Relay/Timer active during sleep -> Raising/Waking up ESP immediately!");
+                    wakeUpAP();
+                } else {
+                    // Check regular sleep interval
+                    uint32_t sleepIntervalMs = _config.sleepIntervalMin * 60 * 1000;
+                    if (now - _stateChangeTick >= sleepIntervalMs) {
+                        wakeUpAP();
+                    }
                 }
             } else {
-                // AP is sleeping, check if sleep interval has elapsed
-                uint32_t sleepIntervalMs = _config.sleepIntervalMin * 60 * 1000;
-                if (now - _stateChangeTick >= sleepIntervalMs) {
-                    // Sleep period finished -> Wake up AP for discovery/connection window
-                    wakeUpAP();
+                // If awake, check if relay or automation is active -> Keep refreshing activity tick so AP stays awake
+                if (RelayManager::getInstance().isAnyRelayOn() || 
+                    RelayManager::getInstance().isAnyTimerActive() || 
+                    RelayManager::getInstance().isAnyCycleActive()) {
+                    _lastActivityTick = now;
+                } else {
+                    uint32_t activeTimeoutMs = _config.wakeWindowMin * 60 * 1000;
+                    if (now - _lastActivityTick >= activeTimeoutMs) {
+                        putAPToSleep();
+                    }
                 }
             }
         }

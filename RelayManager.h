@@ -24,6 +24,9 @@ public:
     // Getters
     RelayChannel getChannel(uint8_t channelId);
     bool getRelayState(uint8_t channelId);
+    bool isAnyRelayOn();
+    bool isAnyTimerActive();
+    bool isAnyCycleActive();
     
     // Countdown Timer Management
     void setCountdownTimer(uint8_t channelId, uint32_t startDelaySec, uint32_t durationSec, bool enable);
