@@ -196,6 +196,29 @@ void handleStatus() {
     }
     json += "],";
 
+    // Wi-Fi RF Signal & Channel Diagnostics
+    int rssiVal = (WiFi.status() == WL_CONNECTED) ? WiFi.RSSI() : -45;
+    uint8_t chVal = WiFi.channel();
+    if (chVal == 0) chVal = DEFAULT_AP_CHANNEL;
+    json += "\"wifi\":{";
+    json += "\"rssi\":" + String(rssiVal) + ",";
+    json += "\"quality\":" + String(constrain(2 * (rssiVal + 100), 0, 100)) + ",";
+    json += "\"channel\":" + String(chVal) + ",";
+    json += "\"freq_mhz\":" + String(2407 + (chVal * 5)) + ",";
+    json += "\"ssid\":\"" + String(DEFAULT_AP_SSID) + "\",";
+    json += "\"clients\":" + String(clients) + ",";
+    json += "\"ip\":\"" + WiFi.softAPIP().toString() + "\"";
+    json += "},";
+
+    // Device Handshake & Identity
+    json += "\"device\":{";
+    json += "\"system\":\"ESP8266_RTOS\",";
+    json += "\"name\":\"Yash_RTOS_System\",";
+    json += "\"version\":\"" + String(FIRMWARE_VERSION) + "\",";
+    json += "\"status\":\"READY\",";
+    json += "\"verified\":true";
+    json += "},";
+
     // System Firmware & Security Status
     json += "\"fw_ver\":\"" + String(FIRMWARE_VERSION) + "\",";
     json += "\"port500\":" + String(isPort500Enabled ? "true" : "false");
@@ -394,6 +417,22 @@ void handleKernelClear() {
     server.sendHeader("Access-Control-Allow-Origin", "*");
     KernelManager::getInstance().clearExceptions();
     server.send(200, "text/plain", "Kernel Faults Cleared");
+}
+
+void handleHandshake() {
+    PowerManager::getInstance().registerUserActivity();
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+    
+    int rssiVal = (WiFi.status() == WL_CONNECTED) ? WiFi.RSSI() : -45;
+    uint8_t chVal = WiFi.channel();
+    if (chVal == 0) chVal = DEFAULT_AP_CHANNEL;
+    
+    String json = "{\"verified\":true,\"system\":\"ESP8266_RTOS\",\"device\":\"Yash_RTOS_System\",\"version\":\"" + String(FIRMWARE_VERSION) + 
+                  "\",\"status\":\"READY\",\"channel\":" + String(chVal) + ",\"rssi\":" + String(rssiVal) + 
+                  ",\"freq_mhz\":" + String(2407 + (chVal * 5)) + ",\"ssid\":\"" + String(DEFAULT_AP_SSID) + "\"}";
+    server.send(200, "application/json", json);
 }
 
 void handleTelegramConfig() {
@@ -668,6 +707,7 @@ void setup() {
     server.on("/api/telegram/config", HTTP_POST, handleTelegramConfig);
     server.on("/api/telegram/test", HTTP_POST, handleTelegramTest);
     server.on("/api/kernel/clear", HTTP_POST, handleKernelClear);
+    server.on("/api/handshake", HTTP_GET, handleHandshake);
 
     // OTA Firmware Upload & Port 500 Security endpoints
     server.on("/api/ota/upload", HTTP_POST, handlePort80OtaUploadEnd, handlePort80OtaChunk);
