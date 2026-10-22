@@ -5,6 +5,7 @@
 #include "RelayManager.h"
 #include "PowerManager.h"
 #include "TelegramManager.h"
+#include "KernelManager.h"
 #include "WebPages.h"
 
 // Primary Web Server and Captive Portal DNS Server
@@ -177,6 +178,16 @@ void handleStatus() {
     json += "\"rtos_power_ticks\":" + String(PowerManager::getInstance().getTickCount());
     json += "},";
 
+    // RTOS Kernel Health & Exception Object
+    KernelExceptionRecord lastEx = KernelManager::getInstance().getLastException();
+    json += "\"kernel\":{";
+    json += "\"fault\":" + String(KernelManager::getInstance().hasActiveFault() ? "true" : "false") + ",";
+    json += "\"code\":\"" + String(KernelManager::getFaultCodeName(KernelManager::getInstance().getActiveFaultCode())) + "\",";
+    json += "\"severity\":\"" + String(KernelManager::getSeverityName(KernelManager::getInstance().getActiveFaultSeverity())) + "\",";
+    json += "\"msg\":\"" + String(lastEx.message) + "\",";
+    json += "\"count\":" + String(KernelManager::getInstance().getTotalExceptionCount());
+    json += "},";
+
     // Event Logs Array
     json += "\"logs\":[";
     for (int i = 0; i < logCount; i++) {
@@ -201,6 +212,11 @@ void handleRelayToggle() {
 
     if (server.hasArg("id")) {
         uint8_t id = server.arg("id").toInt();
+        if (id < 1 || id > NUM_RELAY_CHANNELS) {
+            KernelManager::getInstance().raiseException(FAULT_INVALID_COMMAND, "Relay ID out of range", SEV_WARNING);
+            server.send(400, "text/plain", "Invalid Relay ID");
+            return;
+        }
         if (server.hasArg("state")) {
             bool state = (server.arg("state").toInt() == 1);
             RelayManager::getInstance().setRelayState(id, state);
@@ -209,6 +225,7 @@ void handleRelayToggle() {
         }
         server.send(200, "text/plain", "OK");
     } else {
+        KernelManager::getInstance().raiseException(FAULT_INVALID_COMMAND, "Missing relay id in toggle request", SEV_WARNING);
         server.send(400, "text/plain", "Missing id");
     }
 }
@@ -370,6 +387,13 @@ void handleEmergencyAllOff() {
     RelayManager::getInstance().setAllOff();
     server.sendHeader("Access-Control-Allow-Origin", "*");
     server.send(200, "text/plain", "ALL RELAYS OFF");
+}
+
+void handleKernelClear() {
+    PowerManager::getInstance().registerUserActivity();
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    KernelManager::getInstance().clearExceptions();
+    server.send(200, "text/plain", "Kernel Faults Cleared");
 }
 
 void handleTelegramConfig() {
@@ -605,6 +629,7 @@ void setup() {
     Serial.println("=======================================================");
 
     // 1. Initialize Subsystems
+    KernelManager::getInstance().begin();
     TimeManager::getInstance().begin();
     RelayManager::getInstance().begin();
     PowerManager::getInstance().begin(DEFAULT_AP_SSID, DEFAULT_AP_PASS);
@@ -642,6 +667,7 @@ void setup() {
     server.on("/api/settings", HTTP_POST, handleSettingsUpdate);
     server.on("/api/telegram/config", HTTP_POST, handleTelegramConfig);
     server.on("/api/telegram/test", HTTP_POST, handleTelegramTest);
+    server.on("/api/kernel/clear", HTTP_POST, handleKernelClear);
 
     // OTA Firmware Upload & Port 500 Security endpoints
     server.on("/api/ota/upload", HTTP_POST, handlePort80OtaUploadEnd, handlePort80OtaChunk);
@@ -708,14 +734,17 @@ void loop() {
     // Dedicated Relay Execution engine (100ms precision)
     if (now - lastRelayTick >= 100) {
         lastRelayTick = now;
+        KernelManager::getInstance().registerTaskHeartbeat("RelayTask");
         RelayManager::getInstance().processEngine();
     }
 
-    // Power, LED breathing & Telegram engine (25ms interval)
+    // Power, LED breathing, Telegram & Kernel Exception engine (25ms interval)
     if (now - lastPowerTick >= 25) {
         lastPowerTick = now;
+        KernelManager::getInstance().registerTaskHeartbeat("PowerTask");
         PowerManager::getInstance().processEngine();
         TelegramManager::getInstance().processEngine();
+        KernelManager::getInstance().processEngine();
     }
 #endif
 

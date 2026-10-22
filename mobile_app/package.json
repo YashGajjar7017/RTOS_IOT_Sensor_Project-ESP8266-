@@ -1,0 +1,19 @@
+{
+  "name": "esp-relay-mobile-app",
+  "version": "1.0.0",
+  "description": "Android & iPhone Wireless Controller for ESP8266 Quad Relay System",
+  "main": "index.html",
+  "scripts": {
+    "cap:sync": "cap sync",
+    "cap:android": "cap open android",
+    "cap:ios": "cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/ios": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0"
+  }
+}

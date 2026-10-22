@@ -155,3 +155,50 @@ Stored persistently in flash memory (`LittleFS Preferences`):
 1. **Always Boot OFF (Default & Recommended)**: Safest setting. Relays stay deactivated when mains electricity turns on.
 2. **Always Boot ON**: Relays automatically turn ON immediately when powered.
 3. **Restore Last Known State**: Remembers the state before power loss and restores it after reboot.
+
+---
+
+## 🛡️ RTOS Kernel & Exception Subsystem
+
+The firmware features an integrated **RTOS Kernel Supervisor** (`KernelManager.h` & `KernelManager.cpp`) that continuously guards the system against instability, memory leaks, and hardware stalls without disrupting relay states:
+
+1. **Task Heartbeat Watchdogs**:
+   - Monitors `RelayTask` (100ms precision) and `PowerTask` (25ms precision).
+   - If any core RTOS task fails to report within 5,000ms, the kernel logs a `FAULT_TASK_STALL` exception.
+2. **Dynamic Heap Memory Guard**:
+   - Continuously samples free DRAM. If free heap falls below 4.5 KB, a `FAULT_LOW_HEAP_MEMORY` warning is raised.
+3. **Hardware GPIO Verifier**:
+   - Confirms that active output pins match the expected logical states. Any pin float or high-impedance state raises `FAULT_HARDWARE_PIN_MISMATCH`.
+4. **Exception Ring Buffer & Safe Fail-Safe**:
+   - Retains the last 16 timestamped exceptions with severity tags (`SEV_INFO`, `SEV_WARNING`, `SEV_CRITICAL`, `SEV_FATAL`).
+   - If a `SEV_FATAL` fault triggers, the kernel automatically enters a safe fail-safe state, shutting off all relay loads to protect connected appliances before performing a clean watchdog restart.
+5. **Real-Time UI & App Exception Banners**:
+   - Faults are streamed via `/api/status` under the `"kernel"` object and displayed prominently in both the Web UI and Mobile App with a one-touch **Acknowledge / Clear** button (`POST /api/kernel/clear`).
+
+---
+
+## 📱 Mobile App (Android Native + iPhone iOS)
+
+Located in the [`mobile_app/`](mobile_app/) directory, this application allows wireless control of all 4 channels without internet or cloud servers.
+
+### Android Native App
+- **Native Android Studio Project**: Located in `mobile_app/android/`.
+- **Preconfigured for Local Wi-Fi**: Includes `usesCleartextTraffic="true"` in `AndroidManifest.xml` to allow direct communication with `http://192.168.4.1`.
+- **Haptic Feedback & Low Latency**: Fast, optimistic UI transitions with physical vibration confirmation on relay toggles.
+- **Build / Run**:
+  ```bash
+  cd mobile_app/android
+  .\gradlew.bat assembleDebug
+  ```
+  The compiled APK will be generated at:
+  `mobile_app/android/app/build/outputs/apk/debug/app-debug.apk`
+
+### iPhone / iOS PWA
+- Optimized for Apple Safari as a Progressive Web App (PWA).
+- **Standalone Mode**: Configured with `apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style: black-translucent`, and iOS touch icons.
+- **How to Install on iPhone**:
+  1. Connect your iPhone to the ESP8266 Wi-Fi AP (`Yash_RTOS_System's`).
+  2. Open Safari and navigate to `http://192.168.4.1` (or host the `mobile_app/www` files).
+  3. Tap the **Share** button (box with upward arrow) and select **"Add to Home Screen"**.
+  4. The app launches full-screen with native gestures and haptic switches.
+

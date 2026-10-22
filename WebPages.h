@@ -246,6 +246,11 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>AURA &bull; ESP8266 Quad-Relay RTOS</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ESP Relay">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#05070e">
   <style>
     :root {
       --bg: #05070e;
@@ -1033,6 +1038,18 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
 
   <div class="container">
 
+    <!-- RTOS Kernel Exception Banner -->
+    <div id="kernelAlertBanner" style="display:none; background:rgba(239, 68, 68, 0.2); border:1px solid rgba(239, 68, 68, 0.5); border-radius:var(--radius-lg); padding:14px 18px; margin-bottom:14px; backdrop-filter:blur(16px); align-items:center; justify-content:space-between; gap:12px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:20px;">🚨</span>
+        <div>
+          <div style="font-size:13px; font-weight:700; color:#fca5a5;" id="kernelAlertTitle">RTOS Kernel Exception</div>
+          <div style="font-size:11px; color:#fecaca;" id="kernelAlertDesc">Fault details...</div>
+        </div>
+      </div>
+      <button class="btn-glass" style="padding:6px 12px; font-size:11px; background:rgba(239, 68, 68, 0.4); border-color:rgba(239,68,68,0.7); color:#fff;" onclick="clearKernelFault()">Acknowledge</button>
+    </div>
+
     <!-- Master Shortcuts Glass Dock (Screen Shortcut) -->
     <section class="shortcuts-dock">
       <div class="shortcuts-top">
@@ -1273,6 +1290,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
                 <h2>
                   <span id="rNameText${ch}">Relay ${ch}</span>
                   <span class="countdown-pill" id="rCountdownPill${ch}" style="display:none;">00:00</span>
+                  <span class="countdown-pill" id="rSchedPill${ch}" style="display:none; background:rgba(59,130,246,0.2); color:#60a5fa; border:1px solid rgba(59,130,246,0.35);">📅 08:00-18:00</span>
                 </h2>
                 <p>
                   <span>${pinLabels[ch]}</span> &bull;
@@ -1749,8 +1767,40 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
             } else {
               pill.style.display = 'none';
             }
+
+            // Schedule Badge & Inputs Sync
+            const schedPill = document.getElementById(`rSchedPill${ch}`);
+            if (r.schedule && r.schedule.enabled) {
+              const sh = String(r.schedule.start_h).padStart(2, '0');
+              const sm = String(r.schedule.start_m).padStart(2, '0');
+              const eh = String(r.schedule.end_h).padStart(2, '0');
+              const em = String(r.schedule.end_m).padStart(2, '0');
+              if (schedPill) {
+                schedPill.style.display = 'inline-block';
+                schedPill.innerText = `📅 ${sh}:${sm}-${eh}:${em}`;
+              }
+            } else if (schedPill) {
+              schedPill.style.display = 'none';
+            }
+
+            if (!window.schedulesLoaded && r.schedule) {
+              const sh = String(r.schedule.start_h).padStart(2, '0');
+              const sm = String(r.schedule.start_m).padStart(2, '0');
+              const eh = String(r.schedule.end_h).padStart(2, '0');
+              const em = String(r.schedule.end_m).padStart(2, '0');
+              const sInp = document.getElementById(`rSchedStart${ch}`);
+              const eInp = document.getElementById(`rSchedEnd${ch}`);
+              if (sInp) sInp.value = `${sh}:${sm}`;
+              if (eInp) eInp.value = `${eh}:${em}`;
+              scheduleDays[ch] = r.schedule.days;
+              for (let d = 0; d < 7; d++) {
+                const p = document.getElementById(`dayPill_${ch}_${d}`);
+                if (p) p.classList.toggle('active', (scheduleDays[ch] & (1 << d)) !== 0);
+              }
+            }
           }
         }
+        window.schedulesLoaded = true;
 
         document.getElementById('totalEnergyKwh').innerText = `${lifetimeTotalKwh.toFixed(3)} kWh Total`;
 
@@ -1807,9 +1857,31 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
           link.style.display = data.port500 ? 'block' : 'none';
         }
 
+        // 7. RTOS Kernel Exception Monitor
+        if (data.kernel) {
+          const banner = document.getElementById('kernelAlertBanner');
+          if (banner) {
+            if (data.kernel.fault) {
+              banner.style.display = 'flex';
+              document.getElementById('kernelAlertTitle').innerText = `🚨 Kernel Exception: [${data.kernel.severity}] ${data.kernel.code}`;
+              document.getElementById('kernelAlertDesc').innerText = `${data.kernel.msg} (Total Faults: ${data.kernel.count})`;
+            } else {
+              banner.style.display = 'none';
+            }
+          }
+        }
+
       } catch (err) {
         console.warn('Status poll error:', err);
       }
+    }
+
+    async function clearKernelFault() {
+      try {
+        await fetch('/api/kernel/clear', { method: 'POST' });
+        showToast('Kernel Fault Acknowledged & Cleared');
+        pollStatus();
+      } catch (e) { console.error(e); }
     }
 
     // Startup Initialization

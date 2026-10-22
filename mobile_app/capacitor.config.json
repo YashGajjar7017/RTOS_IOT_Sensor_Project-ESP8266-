@@ -1,0 +1,9 @@
+{
+  "appId": "com.yash.esprelay",
+  "appName": "ESP Relay Controller",
+  "webDir": "www",
+  "server": {
+    "cleartext": true,
+    "androidScheme": "http"
+  }
+}

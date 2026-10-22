@@ -202,6 +202,9 @@ void RelayManager::applyPhysicalPin(uint8_t channelId) {
     if (channelId < 1 || channelId > NUM_RELAY_CHANNELS) return;
     uint8_t idx = channelId - 1;
     
+    // Ensure pin is always an active output
+    pinMode(_channels[idx].pin, OUTPUT);
+    
     // Active LOW vs Active HIGH calculation
     uint8_t level = _channels[idx].activeLow ? (_channels[idx].state ? LOW : HIGH) : (_channels[idx].state ? HIGH : LOW);
     digitalWrite(_channels[idx].pin, level);
@@ -663,9 +666,6 @@ void RelayManager::checkSchedules() {
                 _inScheduleWindow[i] = shouldBeOn;
                 if (_channels[i].state != shouldBeOn) {
                     _channels[i].state = shouldBeOn;
-                    if (shouldBeOn) {
-                        PowerManager::getInstance().wakeUpImmediately();
-                    }
                     applyPhysicalPin(i + 1);
                     char buf[64];
                     snprintf(buf, sizeof(buf), "%s Schedule Sync -> %s", _channels[i].name, shouldBeOn ? "ON" : "OFF");
@@ -676,9 +676,6 @@ void RelayManager::checkSchedules() {
                 // Window transition occurred (e.g. start time arrived or end time reached)
                 _inScheduleWindow[i] = shouldBeOn;
                 _channels[i].state = shouldBeOn;
-                if (shouldBeOn) {
-                    PowerManager::getInstance().wakeUpImmediately();
-                }
                 applyPhysicalPin(i + 1);
 
                 char buf[64];
@@ -724,8 +721,10 @@ void RelayManager::loadFromPreferences() {
             _channels[i].schedule.enabled = _prefs.getBool((prefix + "sch_en").c_str(), false);
             _channels[i].schedule.startHour = _prefs.getUChar((prefix + "sch_sh").c_str(), 8);
             _channels[i].schedule.startMinute = _prefs.getUChar((prefix + "sch_sm").c_str(), 0);
+            _channels[i].schedule.startSecond = 0;
             _channels[i].schedule.endHour = _prefs.getUChar((prefix + "sch_eh").c_str(), 18);
             _channels[i].schedule.endMinute = _prefs.getUChar((prefix + "sch_em").c_str(), 0);
+            _channels[i].schedule.endSecond = 0;
             _channels[i].schedule.daysActive = _prefs.getUChar((prefix + "sch_days").c_str(), 0xFF);
         }
         _prefs.end();
